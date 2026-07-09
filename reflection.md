@@ -44,6 +44,8 @@ Yes — I moved the task list off the Scheduler and into each Pet, so the Schedu
 - Describe one tradeoff your scheduler makes.
 - Why is that tradeoff reasonable for this scenario?
 
+For conflict detection I scoped the check to *pending* tasks only, instead of scanning every task. The tradeoff is coverage versus relevance: checking all tasks would also flag overlaps involving tasks that are already done, but a completed task can't actually collide with anything, so those warnings would just be noise the owner can't act on. Limiting the scan to pending tasks means every conflict I surface is one the owner still has to resolve, which is reasonable here because the whole point of the warning is to help them fix a real, upcoming clash rather than review history.
+
 ---
 
 ## 3. AI Collaboration
