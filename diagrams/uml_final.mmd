@@ -1,0 +1,64 @@
+classDiagram
+    %% PawPal+ class design — final version, synced with pawpal_system.py.
+
+    class Task {
+        +str description
+        +int duration_minutes
+        +Frequency frequency
+        +Priority priority
+        +bool completed
+        +date due_date
+        +time scheduled_time
+        +mark_complete() void
+        +mark_incomplete() void
+        +next_occurrence() Task
+    }
+
+    class Pet {
+        +str name
+        +str breed
+        +list~str~ care_needs
+        +list~Task~ tasks
+        +add_task(task Task) void
+        +pending_tasks() list~Task~
+    }
+
+    class Owner {
+        +str name
+        +int total_available_minutes
+        +list~Pet~ pets
+        +add_pet(pet Pet) void
+        +all_tasks() list~Task~
+    }
+
+    class Scheduler {
+        +Owner owner
+        +all_tasks() list~Task~
+        +pending_tasks() list~Task~
+        +sort_tasks() list~Task~
+        +sort_by_time() list~Task~
+        +filter_tasks(completed bool, pet_name str) list~Task~
+        +complete_task(task Task) Task
+        +generate_plan(on date) list~Task~
+        +detect_conflicts() list~str~
+    }
+
+    class Priority {
+        <<enumeration>>
+        LOW
+        MEDIUM
+        HIGH
+    }
+
+    class Frequency {
+        <<enumeration>>
+        DAILY
+        WEEKLY
+        MONTHLY
+    }
+
+    Owner "1" *-- "*" Pet : cares for
+    Pet "1" *-- "*" Task : needs
+    Scheduler "1" --> "1" Owner : plans for
+    Task ..> Priority : uses
+    Task ..> Frequency : uses

@@ -121,30 +121,89 @@ else:
 
 st.divider()
 
-st.subheader("Build Schedule")
-st.caption("This button should call your scheduling logic once you implement it.")
+# One scheduler over ALL of the owner's pets, reused by every section below.
+scheduler = Scheduler(owner)
+
+# Map each task back to its pet so any view can say whose task it is.
+task_to_pet = {id(task): p.name for p in owner.pets for task in p.tasks}
+
+
+def rows_for(tasks):
+    """Turn a list of Task objects into st.table-friendly dict rows."""
+    return [
+        {
+            "Pet": task_to_pet.get(id(task), "—"),
+            "Task": task.description,
+            "Minutes": task.duration_minutes,
+            "Priority": task.priority.name.title(),
+            "Time": task.scheduled_time.strftime("%H:%M") if task.scheduled_time else "—",
+            "Done": "✅" if task.completed else "⬜",
+        }
+        for task in tasks
+    ]
+
+
+st.subheader("📋 Browse Tasks")
+st.caption("Sort and filter every task across all pets using the Scheduler.")
+
+col_sort, col_pet, col_status = st.columns(3)
+with col_sort:
+    sort_choice = st.selectbox("Sort by", ["Priority", "Duration"])
+with col_pet:
+    pet_names = ["All pets"] + [p.name for p in owner.pets]
+    pet_filter = st.selectbox("Pet", pet_names)
+with col_status:
+    status_filter = st.selectbox("Status", ["All", "Pending", "Completed"])
+
+# Filter first (by pet + completion), using the Scheduler's own filter method.
+completed_arg = {"All": None, "Pending": False, "Completed": True}[status_filter]
+pet_arg = None if pet_filter == "All pets" else pet_filter
+filtered = scheduler.filter_tasks(completed=completed_arg, pet_name=pet_arg)
+
+# Then order the filtered set with the Scheduler's sort methods.
+if sort_choice == "Priority":
+    order = scheduler.sort_tasks()
+else:
+    order = scheduler.sort_by_time()
+rank = {id(task): i for i, task in enumerate(order)}
+# Tasks not in the pending sort order (e.g. completed) fall to the end.
+view = sorted(filtered, key=lambda task: rank.get(id(task), len(order)))
+
+if view:
+    st.table(rows_for(view))
+    st.caption(f"Showing {len(view)} task(s).")
+else:
+    st.info("No tasks match these filters.")
+
+st.divider()
+
+st.subheader("⚠️ Schedule Conflicts")
+st.caption("Checks for pending tasks whose scheduled times overlap.")
+
+conflicts = scheduler.detect_conflicts()
+if conflicts:
+    for message in conflicts:
+        st.warning(message)
+else:
+    st.success("No scheduling conflicts detected.")
+
+st.divider()
+
+st.subheader("🗓️ Build Schedule")
+st.caption("Greedily packs the highest-priority tasks that fit the time budget.")
 
 if st.button("Generate schedule"):
-    # Run the scheduler over ALL of the owner's pets and show the plan.
-    scheduler = Scheduler(owner)
     plan = scheduler.generate_plan()
-
-    # Map each task back to its pet so the plan can say whose task it is.
-    task_to_pet = {id(task): p.name for p in owner.pets for task in p.tasks}
 
     if not plan:
         st.warning("No tasks fit the schedule. Add tasks or increase the time budget.")
     else:
-        st.success(
-            f"Planned {len(plan)} task(s) across {len(owner.pets)} pet(s) "
-            f"within {owner.total_available_minutes} minutes."
-        )
-        for i, task in enumerate(plan, start=1):
-            st.write(
-                f"{i}. **{task_to_pet[id(task)]}** — {task.description} "
-                f"({task.duration_minutes} min) — {task.priority.name.lower()} priority"
-            )
         total = sum(task.duration_minutes for task in plan)
-        st.caption(
-            f"Total planned time: {total} of {owner.total_available_minutes} minutes"
+        st.success(
+            f"Planned {len(plan)} task(s) across {len(owner.pets)} pet(s) — "
+            f"{total} of {owner.total_available_minutes} minutes used."
         )
+        st.table(rows_for(plan))
+
+        used_pct = min(total / owner.total_available_minutes, 1.0)
+        st.progress(used_pct, text=f"{total} / {owner.total_available_minutes} min budget")

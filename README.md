@@ -174,12 +174,77 @@ human-readable warning strings for any that overlap — for the **same pet or ac
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+### The interface
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+Launch the app with `streamlit run app.py`. The page is a single scrolling form, top to bottom:
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+- **Owner** — set the owner's name and a **daily time budget** (in minutes). The budget is the hard
+  ceiling the scheduler packs tasks into.
+- **Pets** — name a pet, pick a species, and **Add pet**. You can register as many pets as you like;
+  a dropdown lets you switch which pet you're managing.
+- **Tasks** — for the selected pet, enter a title, duration, and priority, then **Add task**. The
+  pet's current tasks show in a table as you go.
+- **📋 Browse Tasks** — sort every task across all pets by **Priority** or **Duration**, and filter
+  by **pet** and by **status** (All / Pending / Completed). Results render as a clean table.
+- **⚠️ Schedule Conflicts** — a live check that warns when two pending, time-scheduled tasks overlap.
+- **🗓️ Build Schedule** — **Generate schedule** runs the greedy planner and shows the chosen tasks
+  plus a progress bar of budget used.
+
+### An example workflow
+
+1. Set the owner to *Wendy* with a **60-minute** budget.
+2. **Add a pet** — *Rex* (dog). Add a second pet — *Bella* (cat).
+3. Select *Rex* and **add tasks**: "Feed Rex" (10 min, high), "Play with Rex" (20 min, medium),
+   "Bathe Rex" (30 min, low). Switch to *Bella* and add her tasks the same way.
+4. Open **📋 Browse Tasks**, sort by **Priority** — the high-priority feedings jump to the top,
+   with shorter tasks breaking ties. Filter **Pet → Rex** to see just Rex's three tasks.
+5. Click **Generate schedule**. The planner fills the 60-minute budget with the highest-priority
+   tasks that fit and skips the two long baths, then shows a *50 / 60 min* progress bar.
+
+### Key Scheduler behaviors shown
+
+- **Priority-first sorting** — `sort_tasks()` orders by priority (highest first), then shortest
+  duration, which is exactly the order the plan packs in.
+- **Shortest-first sorting** — `sort_by_time()` gives a "quick wins" view ordered purely by duration.
+- **Filtering** — `filter_tasks()` narrows by pet name and/or completion status (combined with AND).
+- **Greedy planning within a budget** — `generate_plan()` takes the most important tasks that fit
+  and skips oversized ones, so the 30- and 25-minute baths are dropped when only 60 minutes exist.
+- **Conflict warnings** — `detect_conflicts()` flags overlapping time slots instead of crashing.
+
+### Sample CLI output
+
+Running `python main.py` exercises the same logic on the command line:
+
+```
+$ python main.py
+Daily plan for Wendy:
+  08:00 — Feed Bella (5 min) [priority: high]
+  08:05 — Feed Rex (10 min) [priority: high]
+  08:15 — Play with Bella (15 min) [priority: medium]
+  08:30 — Play with Rex (20 min) [priority: medium]
+
+  Total planned time: 50 of 60 minutes
+
+All tasks sorted by time (shortest first):
+   5 min — Feed Bella
+  10 min — Feed Rex
+  15 min — Play with Bella
+  20 min — Play with Rex
+  25 min — Bathe Bella
+  30 min — Bathe Rex
+
+Filtered to Rex's tasks only:
+  Bathe Rex
+  Play with Rex
+  Feed Rex
+
+Still pending across all pets:
+  Bathe Rex
+  Play with Rex
+  Bathe Bella
+  Play with Bella
+  Feed Bella
+
+Already completed:
+  Feed Rex
+```
