@@ -62,15 +62,59 @@ Daily plan for Wendy:
 # Run the full test suite:
 pytest
 
-# Run with coverage:
-pytest --cov
+# Run just the PawPal+ tests, verbosely:
+pytest tests/test_pawpal.py -v
 ```
 
-Sample test output:
+### What the tests cover
+
+The suite in [`tests/test_pawpal.py`](tests/test_pawpal.py) has **34 tests** across every core
+scheduling behavior — happy paths *and* the tricky edge cases:
+
+- **Task & pet basics** — completing/reopening tasks and `pending_tasks()` filtering.
+- **Sorting** — priority-then-duration ordering, stable tie-breaking, duration-only ("shortest
+  first") ordering, exclusion of completed tasks, empty lists, and no mutation of the source lists.
+- **Recurrence** — completing a daily task spawns a fresh incomplete copy due the next day (+1 day);
+  weekly advances +7 days; monthly/one-off spawns nothing; the copy lands on the owning pet by
+  identity; dates compound across repeated completions.
+- **Plan generation** — greedy packing in priority order within the time budget, skipping an
+  oversized task while still fitting a smaller later one, the exact-budget boundary, exclusion of
+  future-dated tasks, and a zero-minute budget.
+- **Conflict detection** — overlapping times flagged for the same pet and across pets, duplicate
+  start times flagged, back-to-back (touching) tasks *not* flagged, untimed/completed tasks ignored,
+  and a three-way overlap reported as its three pairwise warnings.
+- **Filtering** — by pet name, by completion status, both combined (AND), no filters, and an unknown
+  pet name.
+
+### Sample test output
 
 ```
-# Paste your pytest output here
+$ pytest tests/test_pawpal.py
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.5.0
+rootdir: /Users/zhuoerdu/AI110/ai110-module2show-pawpal-starter
+plugins: anyio-4.13.0
+collected 34 items
+
+tests/test_pawpal.py ..................................                  [100%]
+
+============================== 34 passed in 0.08s ==============================
 ```
+
+### Confidence level
+
+**Moderate-to-high confidence in the core scheduling logic.** All 34 tests pass, and they exercise
+the load-bearing behaviors (sorting, recurrence, greedy planning, conflict detection) at both their
+happy paths and their boundaries, so the logic that ships today is well-pinned against regressions.
+
+Two caveats keep this short of *high*:
+
+- **Known gaps, not bugs found:** monthly/one-off tasks silently never recur, and completing an
+  already-completed task spawns a duplicate occurrence. These are covered by tests that document the
+  *current* behavior — they are product decisions still to be made, not verified-correct features.
+- **Untested surface:** the Streamlit UI (`app.py`) and CLI (`main.py`) have no automated tests, and
+  there is no input validation (e.g. negative or zero durations). Confidence applies to
+  `pawpal_system.py`, not the app end-to-end.
 
 ## 📐 Smarter Scheduling
 
