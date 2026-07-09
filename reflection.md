@@ -11,16 +11,24 @@
 - See today's task
 - Schedule a task
 
-- Classes: 
-- Pet (name, breed, what kind of care)
-- Owner (name, total availble minutes)
-- Task (name, duration, priority)
-- Scheduler (order of tasks, owner's time budget, should be able to produce the ordered plan)
+Classes: 
+Pet (name, breed, what kind of care)
+Owner (name, owned pets)
+Task (name, duration, priority)
+Scheduler (order of tasks, should be able to produce the ordered plan)
+
+Owner → Pet (one-to-many): One owner cares for many pets. The owner has a list of pets. If the owner goes away, the pets go with them — they don't exist independently in this system.
+
+Pet → Task (one-to-many): Each pet generates its own tasks (walk this dog, give this cat meds). One pet has many tasks; each task belongs to exactly one pet.
+
+Owner → Task (indirect): The owner doesn't own tasks directly — they own pets, and pets have tasks. So the owner's full to-do list is "all the tasks across all my pets."
 
 **b. Design changes**
 
 - Did your design change during implementation?
 - If yes, describe at least one change and why you made it.
+
+Yes — I moved the task list off the Scheduler and into each Pet, so the Scheduler now retrieves tasks through Owner.all_tasks() instead of storing them itself. I did this because a task belongs to a specific pet, and it keeps each class reaching only one level down (Scheduler → Owner → Pet → Task).
 
 ---
 
